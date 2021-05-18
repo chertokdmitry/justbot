@@ -3,6 +3,7 @@ package service
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/chertokdmitry/justbot/pkg/todo"
+	"sync"
 )
 
 type TodoList interface {
@@ -16,6 +17,7 @@ type TodoList interface {
 	SetTitleTrue()
 	GetAllRequest() []todo.TodoList
 	Delete(listId int)
+	GetListRow(list todo.TodoList, wg *sync.WaitGroup) []tgbotapi.InlineKeyboardButton
 }
 
 type TodoItem interface {
@@ -29,6 +31,7 @@ type TodoItem interface {
 	GetListId() int
 	GetItemIsTitle() bool
 	Delete(itemId int)
+	GetItemRow(item todo.TodoItem, wg *sync.WaitGroup) []tgbotapi.InlineKeyboardButton
 }
 
 type Service struct {

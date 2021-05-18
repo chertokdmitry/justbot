@@ -68,13 +68,13 @@ func (s *TodoListService) GetAll() {
 	msgInline := tgbotapi.NewMessage(telegram.GetChatId(), update.Message.Text)
 
 	if len(s.GetAllRequest()) > 0 {
+		var wg sync.WaitGroup
 		for _, list := range s.GetAllRequest() {
-			var buttons []tgbotapi.InlineKeyboardButton
-			buttons = append(buttons, keyboard.MakeButton(list.Id, list.Title,"list_items" ))
-			buttons = append(buttons, keyboard.MakeButton(list.Id, message.DeleteList,"delete_list" ))
-			row := tgbotapi.NewInlineKeyboardRow(buttons...)
-			rows = append(rows, row)
+			wg.Add(1)
+			rows = append(rows, s.GetListRow(list, &wg))
 		}
+
+		wg.Wait()
 
 		msgInline.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(rows...)
 		if _, err := bot.Send(msgInline); err != nil {
@@ -83,7 +83,15 @@ func (s *TodoListService) GetAll() {
 	} else {
 		message.Send(message.EmptyLists)
 	}
+}
 
+func (s *TodoListService) GetListRow(list todo.TodoList, wg *sync.WaitGroup) []tgbotapi.InlineKeyboardButton {
+	defer wg.Done()
+	var buttons []tgbotapi.InlineKeyboardButton
+	buttons = append(buttons, keyboard.MakeButton(list.Id, list.Title,"list_items" ))
+	buttons = append(buttons, keyboard.MakeButton(list.Id, message.DeleteList,"delete_list" ))
+
+	return tgbotapi.NewInlineKeyboardRow(buttons...)
 }
 
 // GetAllRequest request to get all lists from api

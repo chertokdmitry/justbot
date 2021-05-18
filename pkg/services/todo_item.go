@@ -86,21 +86,30 @@ func (s *TodoItemService) Create(tgMessage *tgbotapi.Message) {
 func (s *TodoItemService) GetListItems(listItemsId int)  {
 	var rows [][]tgbotapi.InlineKeyboardButton
 	msgInline := tgbotapi.NewMessage(telegram.GetChatId(), message.ItemsInList)
+	var wg sync.WaitGroup
 
 	for _, item := range s.GetListItemsRequest(listItemsId) {
-		var buttons []tgbotapi.InlineKeyboardButton
-		buttons = append(buttons, keyboard.MakeButton(item.Id, item.Title, "item"))
-		buttons = append(buttons, keyboard.MakeButton(item.Id, message.CheckItem,"delete_item" ))
-		row := tgbotapi.NewInlineKeyboardRow(buttons...)
-		rows = append(rows, row)
+		wg.Add(1)
+		rows = append(rows, s.GetItemRow(item, &wg))
 	}
 
+	wg.Wait()
 	rows = append(rows, keyboard.MakeButtonRow(listItemsId, message.AddItem, "new_item"))
 	msgInline.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(rows...)
 
 	if _, err := telegram.GetBot().Send(msgInline); err != nil {
 		logrus.Fatalf("error occured when send message to bot: %s", err.Error())
 	}
+}
+
+
+func (s *TodoItemService) GetItemRow(item todo.TodoItem, wg *sync.WaitGroup) []tgbotapi.InlineKeyboardButton {
+	defer wg.Done()
+	var buttons []tgbotapi.InlineKeyboardButton
+	buttons = append(buttons, keyboard.MakeButton(item.Id, item.Title, "item"))
+	buttons = append(buttons, keyboard.MakeButton(item.Id, message.CheckItem,"delete_item" ))
+
+	return tgbotapi.NewInlineKeyboardRow(buttons...)
 }
 
 // GetListItemsRequest request to api for tasks in list
